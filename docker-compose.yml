@@ -1,0 +1,8 @@
+services:
+  todo-api:
+    build: .
+    image: todo-api:v1
+    container_name: todo-container
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
