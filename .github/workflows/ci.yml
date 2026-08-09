@@ -1,0 +1,29 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Kodu çek
+        uses: actions/checkout@v4
+
+      - name: Docker image build et
+        run: docker build -t todo-api:ci .
+
+      - name: Container'ı test amaçlı çalıştır
+        run: docker run -d -p 8001:8000 --name ci-test-container todo-api:ci
+
+      - name: API'nin ayakta olduğunu doğrula
+        run: |
+          sleep 3
+          curl --fail http://localhost:8001/
+
+      - name: Test container'ı temizle
+        if: always()
+        run: |
+          docker stop ci-test-container
+          docker rm ci-test-container
