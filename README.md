@@ -1,169 +1,77 @@
 # Air-Gapped Deployment Simulator
  
-A hands-on simulation of a CI/CD pipeline that builds, tests, and ships a containerized application from an internet-connected environment into a fully isolated (air-gapped) one — without ever exposing the isolated side to the internet.
+A CI/CD pipeline that builds, tests, and ships a containerized application from an internet-connected machine into a fully isolated (air-gapped) one, with no internet access at any point on the isolated side.
  
-This project was built to understand, from the ground up, a problem that real defense, finance, and critical-infrastructure teams face every day: **how do you deploy modern software to a network that is intentionally disconnected from the internet?**
+Two VMs simulate two network zones connected only by a private local link:
  
----
- 
-## Overview
- 
-Two virtual machines simulate "two worlds":
- 
-- **`internetli-vm`** ("connected-vm") — has internet access, hosts the source code, the self-hosted CI runner, and builds the Docker images.
-- **`izole-vm`** ("isolated-vm") — has **no internet access whatsoever**, connected to `internetli-vm` only through a private local network. It hosts its own private Docker registry and runs the production container.
-The entire journey of a code change — from `git push` to a running container on the isolated machine — is automated, with the only "bridge" between the two worlds being a local, offline file transfer.
- 
----
- 
+- **`internetli-vm`** — internet access, source code, self-hosted CI runner, image builds
+- **`izole-vm`** — no internet access, own private Docker registry, runs the production container
 ## Architecture
  
-```mermaid
-flowchart TB
-    subgraph Internet["🌐 Internet"]
-        GH[GitHub<br/>Repository + Actions]
-    end
+<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjgwIiBoZWlnaHQ9IjU2MCIgdmlld0JveD0iMCAwIDY4MCA1NjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgcm9sZT0iaW1nIj4KPHRpdGxlPkFpci1nYXBwZWQgZGVwbG95bWVudCBhcmNoaXRlY3R1cmU8L3RpdGxlPgo8ZGVzYz5GbG93IGZyb20gR2l0SHViIHRvIGludGVybmV0bGktdm0gKGNvbm5lY3RlZCksIGFjcm9zcyBhIGxvY2FsLW5ldHdvcmstb25seSBicmlkZ2UsIHRvIGl6b2xlLXZtIChhaXItZ2FwcGVkKTwvZGVzYz4KPGRlZnM+CjxtYXJrZXIgaWQ9ImFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KPHBhdGggZD0iTTIgMUw4IDVMMiA5IiBmaWxsPSJub25lIiBzdHJva2U9IiM1RjVFNUEiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9tYXJrZXI+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjY4MCIgaGVpZ2h0PSI1NjAiIGZpbGw9IiNmZmZmZmYiLz4KCjxnPgo8cmVjdCB4PSIyNjAiIHk9IjM2IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI0YxRUZFOCIgc3Ryb2tlPSIjNUY1RTVBIiBzdHJva2Utd2lkdGg9IjAuNSIvPgo8dGV4dCB4PSIzNDAiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiMyQzJDMkEiPkdpdEh1YjwvdGV4dD4KPHRleHQgeD0iMzQwIiB5PSI3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNUY1RTVBIj5SZXBvICsgQWN0aW9uczwvdGV4dD4KPC9nPgoKPGxpbmUgeDE9IjM0MCIgeTE9IjkyIiB4Mj0iMzQwIiB5Mj0iMTE4IiBzdHJva2U9IiM1RjVFNUEiIHN0cm9rZS13aWR0aD0iMC41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgo8dGV4dCB4PSIzNTAiIHk9IjEwNiIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNUY1RTVBIj5wdXNoPC90ZXh0PgoKPGc+CjxyZWN0IHg9IjYwIiB5PSIxMTgiIHdpZHRoPSI1NjAiIGhlaWdodD0iMTQwIiByeD0iMjAiIGZpbGw9IiNFNkYxRkIiIHN0cm9rZT0iIzE4NUZBNSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KPHRleHQgeD0iOTAiIHk9IjE0NiIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNTAwIiBmaWxsPSIjMDQyQzUzIj5pbnRlcm5ldGxpLXZtPC90ZXh0Pgo8dGV4dCB4PSI5MCIgeT0iMTY0IiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMwQzQ0N0MiPkludGVybmV0LWNvbm5lY3RlZCDigJQgYnVpbGRzICZhbXA7IHRlc3RzIGltYWdlczwvdGV4dD4KPC9nPgoKPGc+CjxyZWN0IHg9IjgwIiB5PSIxODIiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjRTFGNUVFIiBzdHJva2U9IiMwRjZFNTYiIHN0cm9rZS13aWR0aD0iMC41Ii8+Cjx0ZXh0IHg9IjE2MCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiMwNDM0MkMiPlNlbGYtaG9zdGVkIENJPC90ZXh0Pgo8dGV4dCB4PSIxNjAiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjMDg1MDQxIj5HaXRIdWIgQWN0aW9uczwvdGV4dD4KPC9nPgo8Zz4KPHJlY3QgeD0iMjYwIiB5PSIxODIiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjRTFGNUVFIiBzdHJva2U9IiMwRjZFNTYiIHN0cm9rZS13aWR0aD0iMC41Ii8+Cjx0ZXh0IHg9IjM0MCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiMwNDM0MkMiPkRvY2tlciBidWlsZDwvdGV4dD4KPHRleHQgeD0iMzQwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzA4NTA0MSI+dG9kby1hcGkgaW1hZ2U8L3RleHQ+CjwvZz4KPGc+CjxyZWN0IHg9IjQ0MCIgeT0iMTgyIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI0UxRjVFRSIgc3Ryb2tlPSIjMEY2RTU2IiBzdHJva2Utd2lkdGg9IjAuNSIvPgo8dGV4dCB4PSI1MjAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNTAwIiBmaWxsPSIjMDQzNDJDIj5kb2NrZXIgc2F2ZTwvdGV4dD4KPHRleHQgeD0iNTIwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzA4NTA0MSI+JiM4NTk0OyAudGFyIGZpbGU8L3RleHQ+CjwvZz4KCjxsaW5lIHgxPSIyNDAiIHkxPSIyMTAiIHgyPSIyNjAiIHkyPSIyMTAiIHN0cm9rZT0iIzVGNUU1QSIgc3Ryb2tlLXdpZHRoPSIwLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CjxsaW5lIHgxPSI0MjAiIHkxPSIyMTAiIHgyPSI0NDAiIHkyPSIyMTAiIHN0cm9rZT0iIzVGNUU1QSIgc3Ryb2tlLXdpZHRoPSIwLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+Cgo8bGluZSB4MT0iMzQwIiB5MT0iMjU4IiB4Mj0iMzQwIiB5Mj0iMjgwIiBzdHJva2U9IiM1RjVFNUEiIHN0cm9rZS13aWR0aD0iMC41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKPGc+CjxyZWN0IHg9IjYwIiB5PSIyODAiIHdpZHRoPSI1NjAiIGhlaWdodD0iNjAiIHJ4PSIxMiIgZmlsbD0iI0ZBRUNFNyIgc3Ryb2tlPSIjOTkzQzFEIiBzdHJva2Utd2lkdGg9IjAuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCA0Ii8+Cjx0ZXh0IHg9IjM0MCIgeT0iMzA2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiM0QTFCMEMiPkxvY2FsIG5ldHdvcmsgb25seTwvdGV4dD4KPHRleHQgeD0iMzQwIiB5PSIzMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzcxMkIxMyI+aXpvbGUtYWcg4oCUIG5vIGludGVybmV0IGFjY2VzczwvdGV4dD4KPC9nPgoKPGxpbmUgeDE9IjM0MCIgeTE9IjM0MCIgeDI9IjM0MCIgeTI9IjM2MiIgc3Ryb2tlPSIjNUY1RTVBIiBzdHJva2Utd2lkdGg9IjAuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCjxnPgo8cmVjdCB4PSI2MCIgeT0iMzYyIiB3aWR0aD0iNTYwIiBoZWlnaHQ9IjE0MCIgcng9IjIwIiBmaWxsPSIjRUFGM0RFIiBzdHJva2U9IiMzQjZEMTEiIHN0cm9rZS13aWR0aD0iMC41Ii8+Cjx0ZXh0IHg9IjkwIiB5PSIzOTAiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjUwMCIgZmlsbD0iIzE3MzQwNCI+aXpvbGUtdm08L3RleHQ+Cjx0ZXh0IHg9IjkwIiB5PSI0MDgiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzI3NTAwQSI+QWlyLWdhcHBlZCDigJQgbm8gaW50ZXJuZXQgYWNjZXNzLCBldmVyPC90ZXh0Pgo8L2c+Cgo8Zz4KPHJlY3QgeD0iODAiIHk9IjQyNiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNFMUY1RUUiIHN0cm9rZT0iIzBGNkU1NiIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KPHRleHQgeD0iMTYwIiB5PSI0NDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjUwMCIgZmlsbD0iIzA0MzQyQyI+ZG9ja2VyIGxvYWQ8L3RleHQ+Cjx0ZXh0IHg9IjE2MCIgeT0iNDYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMwODUwNDEiPiYjODU5MjsgLnRhciBmaWxlPC90ZXh0Pgo8L2c+CjxnPgo8cmVjdCB4PSIyNjAiIHk9IjQyNiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNFMUY1RUUiIHN0cm9rZT0iIzBGNkU1NiIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KPHRleHQgeD0iMzQwIiB5PSI0NDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjUwMCIgZmlsbD0iIzA0MzQyQyI+UHJpdmF0ZSByZWdpc3RyeTwvdGV4dD4KPHRleHQgeD0iMzQwIiB5PSI0NjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzA4NTA0MSI+bG9jYWxob3N0OjUwMDA8L3RleHQ+CjwvZz4KPGc+CjxyZWN0IHg9IjQ0MCIgeT0iNDI2IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI0UxRjVFRSIgc3Ryb2tlPSIjMEY2RTU2IiBzdHJva2Utd2lkdGg9IjAuNSIvPgo8dGV4dCB4PSI1MjAiIHk9IjQ0NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNTAwIiBmaWxsPSIjMDQzNDJDIj5MaXZlIGNvbnRhaW5lcjwvdGV4dD4KPHRleHQgeD0iNTIwIiB5PSI0NjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzA4NTA0MSI+dG9kby1hcGk8L3RleHQ+CjwvZz4KCjxsaW5lIHgxPSIyNDAiIHkxPSI0NTQiIHgyPSIyNjAiIHkyPSI0NTQiIHN0cm9rZT0iIzVGNUU1QSIgc3Ryb2tlLXdpZHRoPSIwLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CjxsaW5lIHgxPSI0MjAiIHkxPSI0NTQiIHgyPSI0NDAiIHkyPSI0NTQiIHN0cm9rZT0iIzVGNUU1QSIgc3Ryb2tlLXdpZHRoPSIwLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+Cgo8Y2lyY2xlIGN4PSIxMTAiIGN5PSI1MjIiIHI9IjUiIGZpbGw9IiMzNzhBREQiLz4KPHRleHQgeD0iMTIyIiB5PSI1MjIiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzVGNUU1QSI+Q29ubmVjdGVkPC90ZXh0Pgo8Y2lyY2xlIGN4PSIyODAiIGN5PSI1MjIiIHI9IjUiIGZpbGw9IiM2Mzk5MjIiLz4KPHRleHQgeD0iMjkyIiB5PSI1MjIiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzVGNUU1QSI+QWlyLWdhcHBlZDwvdGV4dD4KPGNpcmNsZSBjeD0iNDYwIiBjeT0iNTIyIiByPSI1IiBmaWxsPSIjRDg1QTMwIi8+Cjx0ZXh0IHg9IjQ3MiIgeT0iNTIyIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM1RjVFNUEiPlNlY3VyaXR5IGJvdW5kYXJ5PC90ZXh0Pgo8L3N2Zz4K" alt="Architecture diagram" width="680" />
+`izole-vm` never talks to GitHub, Docker Hub, or any external service. Everything it needs arrives as a file over a local network link that has no route to the internet.
  
-    subgraph ConnectedVM["internetli-vm (connected)"]
-        Runner[Self-hosted<br/>GitHub Actions Runner]
-        Build[Docker Build<br/>todo-api image]
-        Save[docker save<br/>→ .tar file]
-    end
+## Stack
  
-    subgraph Bridge["🔒 Local network only — izole-ag<br/>NO internet access on this link"]
-        SCP[SCP transfer<br/>.tar file]
-    end
- 
-    subgraph IsolatedVM["izole-vm (air-gapped)"]
-        Load[docker load<br/>← .tar file]
-        Registry[(Private Docker<br/>Registry :5000)]
-        Container[Running Container<br/>todo-api]
-    end
- 
-    Dev[Developer] -->|git push| GH
-    GH -->|triggers workflow| Runner
-    Runner --> Build
-    Build --> Save
-    Save --> SCP
-    SCP --> Load
-    Load --> Registry
-    Registry --> Container
- 
-    style Internet fill:#1a1a2e,color:#fff
-    style ConnectedVM fill:#16213e,color:#fff
-    style Bridge fill:#4a0e0e,color:#fff
-    style IsolatedVM fill:#0f3d0f,color:#fff
-```
- 
-**Key point:** `izole-vm` never talks to GitHub, Docker Hub, or any external service. Everything it needs arrives as a file, carried across a local network link that has no route to the internet.
- 
----
- 
-## Tech stack
- 
-| Layer | Tool | Why |
+| Layer | Tool | Reason |
 |---|---|---|
-| Virtualization | VirtualBox | Free, fine-grained control over network adapters |
-| Application | Python + FastAPI | Minimal boilerplate, lets the focus stay on the pipeline, not the app |
-| Containerization | Docker + docker-compose | Guarantees environment parity between the two machines |
+| Virtualization | VirtualBox | Free, fine-grained network adapter control |
+| Application | Python + FastAPI | Minimal boilerplate, keeps focus on the pipeline |
+| Containers | Docker + docker-compose | Guarantees environment parity between the two VMs |
 | Version control | Git + GitHub | Source of truth, workflow automation |
-| CI | GitHub Actions (self-hosted runner) | Keeps the build process inside owned infrastructure — required by the isolation goal |
-| Registry | Docker Registry (`registry:2`) | Private, no internet dependency, minimal footprint |
-| Transfer | `docker save` / `docker load` / `scp` | Standard offline-transfer pattern for air-gapped systems |
-| Automation | Bash scripts | `push-to-isolated.sh` and `deploy.sh` replace every manual step with a single command |
- 
----
+| CI | GitHub Actions, self-hosted runner | Build stays on owned infrastructure |
+| Registry | `registry:2` | Private, no internet dependency |
+| Transfer | `docker save` / `scp` / `docker load` | Standard offline-transfer pattern |
+| Automation | Bash scripts | Replaces every manual step with one command |
  
 ## Repository structure
  
 ```
 .
 ├── main.py                      # FastAPI CRUD application
-├── Dockerfile                   # Image build definition
-├── docker-compose.yml           # Local run configuration
-├── requirements.txt             # Python dependencies
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
 ├── .github/workflows/ci.yml     # Self-hosted CI: build + test on every push
-├── push-to-isolated.sh          # Runs on internetli-vm: build → save → transfer
-└── deploy.sh                    # Runs on izole-vm: load → tag → push → redeploy
+├── push-to-isolated.sh          # Run on internetli-vm: build → save → transfer
+└── deploy.sh                    # Run on izole-vm: load → tag → push → redeploy
 ```
  
----
+## Pipeline
  
-## The pipeline, step by step
+1. Code is pushed to `main`.
+2. GitHub Actions triggers a workflow on a **self-hosted runner** on `internetli-vm` — not on GitHub's cloud. The image is built and smoke-tested inside owned infrastructure.
+3. `./push-to-isolated.sh <version>` on `internetli-vm`: builds the image, saves it to a `.tar` (`docker save`), transfers it to `izole-vm` over the local network (`scp`). No internet involved.
+4. `./deploy.sh <version>` on `izole-vm`: loads the image (`docker load`), tags and pushes it to the local private registry, stops the old container, starts the new version, verifies it's live.
+Steps 3 and 4 are each a single command — no manual Docker commands, no manual file copying.
  
-1. Code is pushed to `main` on GitHub.
-2. GitHub Actions triggers a workflow — but it runs on a **self-hosted runner** living on `internetli-vm`, not on GitHub's cloud infrastructure. The image is built and smoke-tested entirely inside owned infrastructure.
-3. When ready to ship, `./push-to-isolated.sh <version>` on `internetli-vm`:
-   - builds the image,
-   - saves it to a `.tar` file (`docker save`),
-   - transfers it to `izole-vm` over the private local network (`scp`) — **no internet involved**.
-4. On `izole-vm`, `./deploy.sh <version>`:
-   - loads the image (`docker load`),
-   - tags and pushes it to the local private registry,
-   - stops the old container and starts the new version,
-   - verifies the new version is live.
-No manual Docker commands, no manual file copying — the entire release process after step 1 is two script invocations.
+## Why a self-hosted runner instead of GitHub-hosted
  
----
+GitHub's hosted runners build code on Microsoft's infrastructure, not the team's own. That breaks this project's core requirement: the build artifact has to originate from, and stay inside, infrastructure the team fully controls, so it can move into an isolated network without depending on an external cloud service at any point. A self-hosted runner on `internetli-vm` keeps the entire build process inside the boundary being simulated.
  
-## Why self-hosted CI instead of GitHub-hosted runners?
+## Real-world context
  
-This is the central architectural decision of the project. GitHub's own cloud runners are free, fast, and require no maintenance — but they build your code on Microsoft's infrastructure, not yours. For this project that would have broken the premise entirely: the whole point is that the build artifact must originate from, and stay inside, infrastructure the team fully controls, so it can be carried into an isolated network without ever depending on an external cloud service.
- 
-This mirrors a real constraint in regulated environments: when software must never leave an accredited boundary, build infrastructure has to live inside that boundary too.
- 
----
- 
-## Real-world parallel: air-gapped deployment in defense and critical-infrastructure software
- 
-This isn't an artificial constraint invented for a portfolio project — it's a well-documented, everyday reality in defense and other high-assurance sectors.
- 
-Classified and mission-critical systems are commonly run on networks with no connection to the public internet, precisely because air-gapping removes an entire category of remote-attack risk. In practice, teams working under these constraints have to rebuild standard DevOps tooling — package mirrors, container registries, dependency feeds — entirely inside the isolated boundary, since the usual cloud-hosted registries and CI runners simply aren't reachable.
- 
-Movement of software between the connected and isolated sides is not informal — it typically goes through an accredited **Cross-Domain Solution (CDS)**, a dedicated hardware/software system that inspects and validates data before it's allowed to cross the boundary, or through controlled offline patterns: signed removable media with a documented chain of custody, one-way data diodes for inbound updates, or periodically refreshed offline package mirrors. Every transfer is logged and auditable, and the process is deliberately slower than a normal deployment — security is prioritized over convenience by design.
- 
-The U.S. Department of Defense has been formally pushing DevSecOps adoption since 2021 specifically to close the gap between fast-moving threats and traditionally slow acquisition cycles, but explicitly acknowledges that standard toolchains — cloud registries, hosted CI, live vulnerability feeds — have to be adapted to work fully disconnected. Programs pursuing accreditation ("Authority to Operate") have to demonstrate exactly this kind of controlled, auditable pipeline.
- 
-This project reproduces that shape at a small, learnable scale: a connected build environment, an isolated runtime environment, and a controlled, scriptable bridge between them — instead of ad-hoc, manual, undocumented file copying.
- 
-**Further reading:**
-- Anchore — [Air Gapping for DevSecOps: Secure DoD Data](https://anchore.com/blog/dod-devsecops-air-gap-environment/)
-- Zapata Technology — [DevSecOps in Classified Environments](https://www.zapatatechnology.com/devsecops-in-classified-environments-practical-approaches-for-defense-programs/)
-- Corvus Intelligence — [Air-Gapped Deployments for Defense Software](https://corvusintell.com/blog/secure-cloud/air-gapped-deployment-defense/)
-- Elastic — [Air-gapped ECK implementation: Strengthening DoD DevSecOps](https://www.elastic.co/blog/air-gapped-eck-implementation-dod-devsecops)
-- OpenSSF — [Simplifying DevSecOps in Air-Gapped Environments with Zarf](https://openssf.org/blog/2025/11/18/tech-talk-recap-simplifying-devsecops-in-air-gapped-environments-with-zarf/)
----
+Air-gapping — running systems with no connection to the public internet — is a standard practice in regulated and high-assurance industries (defense, finance, critical infrastructure), because it removes an entire category of remote-attack risk. Standard cloud-hosted CI runners and container registries simply aren't reachable from such networks, so teams run local equivalents inside the isolated boundary instead — the same problem this project's self-hosted runner and private registry solve at a small, learnable scale.
  
 ## Key design decisions
  
-| Decision | Chosen | Rejected alternative | Why |
+| Decision | Chosen | Rejected | Why |
 |---|---|---|---|
-| Isolation network | VirtualBox Internal Network | Host-only network | Internal Network has zero route to the host machine, not just the internet — a closer match to true air-gapping |
-| IP addressing | Static IP | DHCP | Isolated networks commonly avoid DHCP entirely — it's an unnecessary attack surface and removes predictability |
-| CI runner | Self-hosted | GitHub-hosted | Build must happen on owned infrastructure so the artifact never depends on an external cloud service |
-| Registry | Minimal `registry:2` | Harbor | Harbor's RBAC/UI/scanning features are valuable in production but were unnecessary complexity for demonstrating the core mechanism |
-| Registry | Self-hosted private registry | Docker Hub | Docker Hub requires internet access — directly incompatible with the isolated side |
-| Image transfer | `docker save` / `scp` / `docker load` | Shared folder, USB | Reused the SSH channel already in place; in a true air-gap (no network link at all) this would become signed removable media instead |
+| Isolation network | VirtualBox Internal Network | Host-only | Zero route to the host machine, not just the internet |
+| IP addressing | Static IP | DHCP | Predictable, avoids an unnecessary attack surface |
+| CI runner | Self-hosted | GitHub-hosted | Build artifact must never depend on external cloud infrastructure |
+| Registry | Minimal `registry:2` | Harbor | Harbor's RBAC/UI/scanning are valuable in production but unnecessary to demonstrate the core mechanism |
+| Registry | Self-hosted private registry | Docker Hub | Docker Hub requires internet access |
+| Image transfer | `docker save` / `scp` / `docker load` | Shared folder, USB | Reused the existing SSH channel; in a true air-gap with no network link at all, this would become signed removable media |
  
----
+## What this demonstrates
  
-## What this project demonstrates
- 
-- Designing and validating a genuinely isolated network segment (not just "no wifi," but no route out at all)
+- Designing and validating a genuinely isolated network segment
 - Building portable, environment-independent artifacts with Docker
-- Running CI on infrastructure you control, not a third-party cloud
+- Running CI on owned infrastructure instead of a third-party cloud
 - Moving a build artifact across a security boundary in a controlled, repeatable, scriptable way
 - Automating a process that would otherwise depend on error-prone manual steps
 ---
  
 <br>
 <br>
-# 🇹🇷 Türkçe
- 
-# Air-Gapped Deployment Simulator (İnternetsiz Ortama Dağıtım Simülatörü)
- 
-İnternete bağlı bir ortamda derlenip test edilen, konteynerleştirilmiş bir uygulamayı, internetten tamamen izole edilmiş (air-gapped) bir ortama — izole tarafı **hiçbir zaman** internete maruz bırakmadan — taşıyan uçtan uca bir CI/CD pipeline simülasyonu.
- 
-Bu proje, gerçek savunma sanayii, finans ve kritik altyapı ekiplerinin her gün karşılaştığı bir problemi sıfırdan anlamak için kuruldu: **modern bir yazılımı, bilinçli olarak internetten koparılmış bir ağa nasıl dağıtırsın?**
- 
----
