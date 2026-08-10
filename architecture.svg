@@ -1,0 +1,86 @@
+<svg width="680" height="560" viewBox="0 0 680 560" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Air-gapped deployment architecture</title>
+<desc>Flow from GitHub to internetli-vm (connected), across a local-network-only bridge, to izole-vm (air-gapped)</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect width="680" height="560" fill="#ffffff"/>
+
+<g>
+<rect x="260" y="36" width="160" height="56" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="340" y="54" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">GitHub</text>
+<text x="340" y="72" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#5F5E5A">Repo + Actions</text>
+</g>
+
+<line x1="340" y1="92" x2="340" y2="118" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+<text x="350" y="106" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#5F5E5A">push</text>
+
+<g>
+<rect x="60" y="118" width="560" height="140" rx="20" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="90" y="146" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#042C53">internetli-vm</text>
+<text x="90" y="164" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#0C447C">Internet-connected — builds &amp; tests images</text>
+</g>
+
+<g>
+<rect x="80" y="182" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="160" y="200" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C">Self-hosted CI</text>
+<text x="160" y="218" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#085041">GitHub Actions</text>
+</g>
+<g>
+<rect x="260" y="182" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="340" y="200" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C">Docker build</text>
+<text x="340" y="218" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#085041">todo-api image</text>
+</g>
+<g>
+<rect x="440" y="182" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="520" y="200" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C">docker save</text>
+<text x="520" y="218" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#085041">&#8594; .tar file</text>
+</g>
+
+<line x1="240" y1="210" x2="260" y2="210" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+<line x1="420" y1="210" x2="440" y2="210" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+
+<line x1="340" y1="258" x2="340" y2="280" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+
+<g>
+<rect x="60" y="280" width="560" height="60" rx="12" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5" stroke-dasharray="4 4"/>
+<text x="340" y="306" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#4A1B0C">Local network only</text>
+<text x="340" y="324" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#712B13">izole-ag — no internet access</text>
+</g>
+
+<line x1="340" y1="340" x2="340" y2="362" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+
+<g>
+<rect x="60" y="362" width="560" height="140" rx="20" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+<text x="90" y="390" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#173404">izole-vm</text>
+<text x="90" y="408" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#27500A">Air-gapped — no internet access, ever</text>
+</g>
+
+<g>
+<rect x="80" y="426" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="160" y="444" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C">docker load</text>
+<text x="160" y="462" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#085041">&#8592; .tar file</text>
+</g>
+<g>
+<rect x="260" y="426" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="340" y="444" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C">Private registry</text>
+<text x="340" y="462" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#085041">localhost:5000</text>
+</g>
+<g>
+<rect x="440" y="426" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="520" y="444" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C">Live container</text>
+<text x="520" y="462" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#085041">todo-api</text>
+</g>
+
+<line x1="240" y1="454" x2="260" y2="454" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+<line x1="420" y1="454" x2="440" y2="454" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+
+<circle cx="110" cy="522" r="5" fill="#378ADD"/>
+<text x="122" y="522" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#5F5E5A">Connected</text>
+<circle cx="280" cy="522" r="5" fill="#639922"/>
+<text x="292" y="522" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#5F5E5A">Air-gapped</text>
+<circle cx="460" cy="522" r="5" fill="#D85A30"/>
+<text x="472" y="522" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#5F5E5A">Security boundary</text>
+</svg>
